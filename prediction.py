@@ -8,7 +8,8 @@ from metrics import *
 from utils.postprocessing import *
 from utils.test_augmentation import test_augmentation
 from add_arguments import get_arguments
-
+from glob import glob
+from PIL import Image
 
 class Logger(object):
     def __init__(self, filename='logprocess.log', stream=sys.stdout):
@@ -50,7 +51,10 @@ def prediction():
     if args.model == 'AE':
         testmodel = model.get_target_segmentation_net()
 
-    pred_ori = np.zeros((165,768,1024))
+    files = glob(args.data_dir_test+"/*")
+    test_img = np.asarray(Image.open(files[0]))
+
+    pred_ori = np.zeros((len(files),) + test_img.shape)
     input_size_target = (512, 512)
 
     pred_final,msk_final = test_augmentation(testmodel,pred_ori,input_size_target,args,usecuda=True)
@@ -69,7 +73,7 @@ def prediction():
     print('final 3D dice: %4f' % final3_dice, 'final 3D jac: %4f' % final3_jac,
           'final 2D dice: %4f' % (final2_dice / (pics)), 'final 2D jac: %4f' % (final2_jac / (pics)))
 
-    pred_final = postpre(pred_final, args.savedir,5)
+    pred_final = postpre(pred_final, args.save_dir,5)
 
     final3_dice,final3_jac = dice_coeff(pred_final,msk_final)
     final2_dice = 0
@@ -85,7 +89,7 @@ def prediction():
     print('final 3D dice: %4f' % final3_dice, 'final 3D jac: %4f' % final3_jac,
           'final 2D dice: %4f' % (final2_dice / (pics)), 'final 2D jac: %4f' % (final2_jac / (pics)))
 
-    desired_path = args.savedir + 'final_postpre'+'/'
+    desired_path = args.save_dir + 'final_postpre'+'/'
 
     if not os.path.exists(desired_path):
         os.makedirs(desired_path)
