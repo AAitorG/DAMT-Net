@@ -60,14 +60,14 @@ def test_model(model, valloader, save_dir,i_iter,gpu,usecuda,test_aug):
             stacked_img = torch.Tensor([]).cuda(gpu)
         else:
             stacked_img = torch.Tensor([])
-        for index in range(images_v.size()[1]):
+        for index in range(images_v.size()[1]): # iterate patches
             with torch.no_grad():
                 if usecuda:
-                    image_v = Variable(images_v[:, index, :, :].unsqueeze(0).cuda(gpu))
+                    image_v = Variable(images_v[:, index, :, :].unsqueeze(0).cuda(gpu)) # (batch, image divided in patches with overlaping, h, w)
                 else:
                     image_v = Variable(images_v[:, index, :, :].unsqueeze(0))
             try:
-                _, output = model(image_v)
+                _, output = model(image_v) # two images (looks as pred_segm and its inverse, non binary)
                 output = torch.argmax(output, dim=1).float()
                 stacked_img = torch.cat((stacked_img, output))
             except RuntimeError as e:
@@ -78,6 +78,7 @@ def test_model(model, valloader, save_dir,i_iter,gpu,usecuda,test_aug):
                 else:
                     raise e
         pred, original_msk = save_prediction_image(stacked_img, name,i_iter,save_dir,original_msk)
+        _,__ = save_prediction_image_grayscale(stacked_img, name,i_iter,save_dir,original_msk)
         dim = pred.shape
 
         dice, jac = dice_coeff(pred, original_msk)
@@ -160,3 +161,49 @@ def polarize(img):
     img[img >= 0.5] = 1
     img[img < 0.5] = 0
     return img
+
+def save_prediction_image_grayscale(stacked_img, im_name, iter, save_folder_name, original_msk):
+    """save images to save_path
+    Args:
+        stacked_img (numpy): stacked cropped images
+        save_folder_name (str): saving folder name
+        division_array(388, 2, 3, 768, 1024):
+                388: label patch size
+                2, divide num in heigh
+                3, divide num in width
+                768: image height
+                1024: image width
+
+    """
+    crop_size = stacked_img[0].size()
+
+    maxsize = original_msk.shape[1:]
+
+    output_shape = original_msk.shape[1:]
+    crop_n1 = math.ceil(output_shape[0] / crop_size[0])
+    crop_n2 = math.ceil(output_shape[1] / crop_size[1])
+    if crop_n1 == 1:
+        crop_n1 = crop_n1
+    else:
+        crop_n1 = crop_n1 + 1
+    if crop_n2 == 1:
+        crop_n2 = crop_n2
+    else:
+        crop_n2 = crop_n2 + 1
+
+    div_arr = division_array(stacked_img.size(1), crop_n1, crop_n2, output_shape[0], output_shape[1])
+    img_cont = image_concatenate(stacked_img.cpu().data.numpy(), crop_n1, crop_n2, output_shape[0], output_shape[1])
+
+    img_cont = img_cont / div_arr
+    img_cont_np = (img_cont*255).astype('uint8')
+
+    img_cont = Image.fromarray(img_cont_np )
+    # organize images in every epoch
+    desired_path = save_folder_name + '_gray_iter_' + str(iter) + '/'
+    # Create the path if it does not exist
+    if not os.path.exists(desired_path):
+        os.makedirs(desired_path)
+    # Save Image!
+    export_name = str(im_name) + '.png'
+    img_cont.save(desired_path + export_name)
+    return img_cont_np, original_msk

@@ -2,3 +2,8 @@
 /snapshots
 /testResult
 /logprocess.log
+/val
+/dataset/__pycache__
+/model/__pycache__
+/utils/__pycache__
+/results

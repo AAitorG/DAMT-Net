@@ -358,12 +358,12 @@ def main():
                 torch.save(model_feature.state_dict(),
                            osp.join(args.snapshot_dir, 'CVbest' + str(i_iter) + '_' + str(jac) + '_D2.pth'))
 
-            else:
-                torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'CV_' + str(i_iter) + '.pth'))
-                torch.save(model_label.state_dict(),
-                               osp.join(args.snapshot_dir, 'CV_' + str(i_iter) + '_D.pth'))
-                torch.save(model_feature.state_dict(),
-                               osp.join(args.snapshot_dir, 'CV_' + str(i_iter) + '_D2.pth'))
+            # save model each "save_pred_every" epochs
+            torch.save(model.state_dict(), osp.join(args.snapshot_dir, 'CV_' + str(i_iter) + '.pth'))
+            torch.save(model_label.state_dict(),
+                           osp.join(args.snapshot_dir, 'CV_' + str(i_iter) + '_D.pth'))
+            torch.save(model_feature.state_dict(),
+                           osp.join(args.snapshot_dir, 'CV_' + str(i_iter) + '_D2.pth'))
 
 
 
